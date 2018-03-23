@@ -1,0 +1,75 @@
+#app {
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+}
+
+.app {
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+
+  margin: 0px;
+  overflow: hidden;
+  background-image: url('./millim-mono.gif');
+}
+
+.appConnected {
+  background-image: url('./millim.gif');
+  /* height: 300px; */
+  /* width: 300px; */
+}
+
+#rtt {
+  position: fixed;
+  left: 10px;
+  bottom: 10px;
+  color: #888;
+  font-family: 'Verdana';
+  font-size: 10pt;
+  font-style: italic;
+}
+
+#count {
+  position: fixed;
+  right: 10px;
+  bottom: 10px;
+  color: #888;
+  font-family: 'Verdana';
+  font-size: 10pt;
+  font-style: italic;
+}
+
+.mouse {
+  position: absolute;
+  color: #002;
+  font-size: 25px;
+  /* text-shadow: 2px 2px 2px #aaa; */
+  cursor: default;
+}
+
+#uri {
+  position: fixed;
+  left: 10px;
+  top: 10px;
+  color: #888;
+  font-family: 'Verdana';
+  font-size: 9pt;
+  font-style: italic;
+}
+
+.online {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  margin: 0;
+}
+
+.reset {
+  font-size: 10;
+  margin-left: 5px;
+}
