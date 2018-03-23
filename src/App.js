@@ -89,7 +89,7 @@ class App extends React.Component<*, state> {
     super(props, context);
     this.swarm = new SwarmDB({
       storage: new Storage(),
-      upstream: new Conn('ws://174.138.33.58:31415'),
+      upstream: new Conn('wss://swarm.toscale.co'),
       db: { name: 'default' },
     });
 
