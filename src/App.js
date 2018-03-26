@@ -155,6 +155,20 @@ class App extends React.Component<*, state> {
     );
   };
 
+  kill(num: number = 1): void {
+    const toKill = [];
+    for (const m of this.state.mice) {
+      if (m.id !== this.state.mouse) {
+        toKill.push(m);
+      }
+      if (toKill.length >= num) break;
+    }
+
+    for (const m of toKill) {
+      this.swarm.remove('mice', UUID.fromString(m.id));
+    }
+  }
+
   addToMice = () => {
     clearTimeout(this.add);
     this.add = setTimeout(() => {
