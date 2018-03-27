@@ -23,10 +23,10 @@ const STATUS_CHECK = 150;
 
 const sub = gql`
   subscription Mice {
-    result @node(id: "mice") @ensure {
+    result @node(id: "mice") {
       version
       length
-      list: id @node @slice(begin: 0) @ensure {
+      list: id @node @slice(begin: 0) {
         id
         lastUpdate: version @date
         x
@@ -39,7 +39,7 @@ const sub = gql`
 
 const mouseQuery = gql`
   query MouseQuery($id: UUID!) {
-    mouse @node(id: $id) @ensure {
+    mouse @node(id: $id) {
       id
       version
       symbol
