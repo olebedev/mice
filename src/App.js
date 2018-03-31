@@ -108,14 +108,17 @@ class App extends React.Component<*, state> {
     this.swarm.ensure().then(async () => {
       // create scoped ref
       // $FlowFixMe
-      const mouse = new UUID('mouse', this.swarm.client.db.id, '$').toString();
-      this.swarm.add('mice', UUID.fromString(mouse));
+      const mouse = new UUID('mouse', this.swarm.client.db.id, '$');
+      this.swarm.add('mice', mouse);
 
       // subscribe to the set
       this.swarm.execute({ gql: sub }, this.onUpdate);
 
       // put it into the state
-      this.setState({ id: this.swarm.client.db.id, mouse });
+      this.setState({
+        id: this.swarm.client.db.id,
+        mouse: mouse.toString(),
+      });
 
       // init mouse if needed
       this.swarm
