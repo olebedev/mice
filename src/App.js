@@ -26,7 +26,7 @@ const sub = gql`
     result @node(id: "mice") {
       version
       length
-      list: id @node @slice(begin: 0) {
+      list: id @slice(begin: 0) {
         id
         lastUpdate: version @date
         x
