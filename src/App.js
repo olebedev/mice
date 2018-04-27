@@ -1,53 +1,26 @@
 // @flow
 
 import * as React from 'react';
-import gql from 'graphql-tag';
 import SwarmDB from 'swarm-db';
-import type { Response } from 'swarm-db';
-import {
-  // InMemory as Storage,
-  LocalStorage as Storage,
-} from 'swarm-client';
-import type { Atom } from 'swarm-ron';
+import { LocalStorage as Storage } from 'swarm-client';
 import { UUID } from 'swarm-ron';
+import { Verbose } from 'swarm-client/lib/connection';
+
+import type { Response } from 'swarm-db';
+import type { Atom } from 'swarm-ron';
+
 import './App.css';
 import Mouse from './Mouse';
-import Conn from './conn';
+import { mouseQuery, miceSubscription } from './graphql';
 
 const FREQ = 30;
-const TO_CHECK_MIN = 6e4; // 1 min
-const TO_CHECK_MAX = 6e4 * 2; // 2 min
+const TO_CHECK_MIN = 6e4;
+const TO_CHECK_MAX = 6e4 * 2;
 const ABANDONED = TO_CHECK_MIN;
 const ADD_DEBOUNCE = 150;
 const STATUS_CHECK = 150;
 
-const sub = gql`
-  subscription Mice {
-    result @node(id: "mice") {
-      version
-      length
-      list: id @slice(begin: 0) {
-        id
-        lastUpdate: version @date
-        x
-        y
-        symbol
-      }
-    }
-  }
-`;
-
-const mouseQuery = gql`
-  query MouseQuery($id: UUID!) {
-    mouse @node(id: $id) {
-      id
-      version
-      symbol
-    }
-  }
-`;
-
-type subUpdate = {
+type Update = {
   result: {
     length: number,
     list: Array<{
@@ -60,16 +33,16 @@ type subUpdate = {
   },
 };
 
-type state = {
+type State = {
   id: string,
   online: boolean,
   connected: boolean,
   state: number,
   mouse: string,
-  mice: $PropertyType<$PropertyType<subUpdate, 'result'>, 'list'>,
+  mice: $PropertyType<$PropertyType<Update, 'result'>, 'list'>,
 };
 
-class App extends React.Component<*, state> {
+class App extends React.Component<any, State> {
   state = {
     id: '',
     online: true,
@@ -89,7 +62,7 @@ class App extends React.Component<*, state> {
     super(props, context);
     this.swarm = new SwarmDB({
       storage: new Storage(),
-      upstream: new Conn('wss://swarm.toscale.co'),
+      upstream: new Verbose('wss://swarm.toscale.co'),
       db: { name: 'default' },
     });
 
@@ -102,25 +75,25 @@ class App extends React.Component<*, state> {
       }
     }, STATUS_CHECK);
 
-    this.dropAbandoned();
-
-    // install subscription
+    // wait the swarm to be initialized
     this.swarm.ensure().then(async () => {
+      console.log('initialized');
       // create scoped ref
       // $FlowFixMe
       const mouse = new UUID('mouse', this.swarm.client.db.id, '$');
       this.swarm.add('mice', mouse);
 
       // subscribe to the set
-      this.swarm.execute({ gql: sub }, this.onUpdate);
+      this.swarm.execute({ gql: miceSubscription }, this.onUpdate);
 
-      // put it into the state
+      // put the mouse into the state
       this.setState({
         id: this.swarm.client.db.id,
         mouse: mouse.toString(),
       });
 
-      // init mouse if needed
+      // check if mouse is not initialized yet
+      // and init it if needed
       this.swarm
         .execute(
           { gql: mouseQuery, args: { id: mouse } },
@@ -139,9 +112,12 @@ class App extends React.Component<*, state> {
     });
   }
 
-  onUpdate = (update: Response<subUpdate>): void => {
+  onUpdate = (update: Response<Update>): void => {
     if (update.data) {
-      this.setState({ mice: update.data.result.list });
+      this.setState({ mice: update.data.result.list }, () => {
+        // apply immediately at the first time
+        if (!this.miceTimeoutCheck) this.dropAbandoned();
+      });
     }
   };
 
@@ -152,6 +128,7 @@ class App extends React.Component<*, state> {
         this.swarm.remove('mice', UUID.fromString(m.id));
       }
     }
+    console.log('drop abandoned');
     this.miceTimeoutCheck = setTimeout(
       this.dropAbandoned,
       getRandom(TO_CHECK_MIN, TO_CHECK_MAX),
@@ -194,11 +171,6 @@ class App extends React.Component<*, state> {
     }
   };
 
-  removeCurrent = () => {
-    if (!this.state.mouse) return;
-    this.swarm.remove('mice', UUID.fromString(this.state.mouse));
-  };
-
   handleMove = (e: Event) => {
     if (!this.state.id) return;
     this.addToMice();
@@ -210,7 +182,7 @@ class App extends React.Component<*, state> {
     this.throttle =
       this.throttle ||
       setTimeout(() => {
-        this.set(this.state.mouse, { x, y });
+        this.set({ x, y });
         this.throttle = null;
       }, FREQ);
   };
@@ -221,12 +193,9 @@ class App extends React.Component<*, state> {
     e.preventDefault();
   };
 
-  set = (id: string, data: { [string]: Atom | void }) => {
-    // only own scoped mouse
-    if (this.state.mouse && id === this.state.mouse.toString()) {
-      this.swarm.set(this.state.mouse, data);
-    }
-  };
+  set(data: { [string]: Atom | void }): void {
+    this.swarm.set(this.state.mouse, data);
+  }
 
   reset = () => {
     this.swarm.close();
@@ -247,13 +216,16 @@ class App extends React.Component<*, state> {
             return (
               !!id && (
                 <Mouse
-                  main={mouse === id}
-                  id={id}
+                  highligted={mouse === id}
                   key={id}
                   x={x}
                   y={y}
                   symbol={symbol || getSymbol()}
-                  onClick={() => this.set(id, { symbol: getSymbol() })}
+                  onClick={
+                    id === mouse
+                      ? () => this.set({ symbol: getSymbol() })
+                      : () => {}
+                  }
                 />
               )
             );
@@ -269,7 +241,7 @@ class App extends React.Component<*, state> {
             online {this.state.id && `(${this.state.id})`}
           </label>
           <button onClick={this.reset} className="reset" type="button">
-            reset
+            reset state
           </button>
         </div>
       </span>
@@ -278,7 +250,7 @@ class App extends React.Component<*, state> {
 }
 
 function getSymbol() {
-  return String.fromCharCode(10000 + Math.round((Math.random() * 10000) % 60));
+  return String.fromCharCode(getRandom(10000, 10060));
 }
 
 function getRandom(min, max) {
