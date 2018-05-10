@@ -62,11 +62,15 @@ class App extends React.Component<any, State> {
     super(props, context);
     this.swarm = new SwarmDB({
       storage: new Storage(),
-      upstream: new Verbose('wss://swarm.toscale.co'),
-      db: { name: 'default' },
+      upstream: new Verbose('ws://0.0.0.0:31415'),
+      db: {
+        name: 'default',
+        clockLen: 7,
+      },
     });
 
     window.view = this;
+    window.UUID = UUID;
 
     this.statusCheck = setInterval(() => {
       const connected = this.swarm.client.upstream.readyState === 1;
@@ -76,40 +80,45 @@ class App extends React.Component<any, State> {
     }, STATUS_CHECK);
 
     // wait the swarm to be initialized
-    this.swarm.ensure().then(async () => {
-      console.log('initialized');
-      // create scoped ref
-      // $FlowFixMe
-      const mouse = new UUID('mouse', this.swarm.client.db.id, '$');
-      this.swarm.add('mice', mouse);
+    this.swarm
+      .ensure()
+      .then(async () => {
+        console.log('initialized');
+        // create scoped ref
+        // $FlowFixMe
+        const mouse = new UUID('mouse', this.swarm.client.db.id, '$');
+        this.swarm.add('mice', mouse);
 
-      // subscribe to the set
-      this.swarm.execute({ gql: miceSubscription }, this.onUpdate);
+        // subscribe to the set
+        this.swarm.execute({ gql: miceSubscription }, this.onUpdate);
 
-      // put the mouse into the state
-      this.setState({
-        id: this.swarm.client.db.id,
-        mouse: mouse.toString(),
-      });
-
-      // check if mouse is not initialized yet
-      // and init it if needed
-      this.swarm
-        .execute(
-          { gql: mouseQuery, args: { id: mouse } },
-          (update: Response<mixed>): void => {
-            // $FlowFixMe
-            const { version, symbol } = update.data.mouse;
-            if (version === '0' || !symbol)
-              this.swarm.set(mouse, {
-                symbol: getSymbol(),
-              });
-          },
-        )
-        .catch(e => {
-          console.error(e);
+        // put the mouse into the state
+        this.setState({
+          id: this.swarm.client.db.id,
+          mouse: mouse.toString(),
         });
-    });
+
+        // check if mouse is not initialized yet
+        // and init it if needed
+        this.swarm
+          .execute(
+            { gql: mouseQuery, args: { id: mouse } },
+            (update: Response<mixed>): void => {
+              // $FlowFixMe
+              const { version, symbol } = update.data.mouse;
+              if (version === '0' || !symbol)
+                this.swarm.set(mouse, {
+                  symbol: getSymbol(),
+                });
+            },
+          )
+          .catch(e => {
+            console.error(e);
+          });
+      })
+      .catch(err => {
+        console.error(err);
+      });
   }
 
   onUpdate = (update: Response<Update>): void => {
