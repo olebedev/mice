@@ -90,7 +90,7 @@ class App extends React.Component<any, State> {
         this.swarm.add('mice', mouse);
 
         // subscribe to the set
-        this.swarm.execute({ gql: miceSubscription }, this.onUpdate);
+        this.swarm.execute({ query: miceSubscription }, this.onUpdate);
 
         // put the mouse into the state
         this.setState({
@@ -102,7 +102,7 @@ class App extends React.Component<any, State> {
         // and init it if needed
         this.swarm
           .execute(
-            { gql: mouseQuery, args: { id: mouse } },
+            { query: mouseQuery, variables: { id: mouse } },
             (update: Response<mixed>): void => {
               // $FlowFixMe
               const { version, symbol } = update.data.mouse;
@@ -117,8 +117,11 @@ class App extends React.Component<any, State> {
           });
       })
       .catch(err => {
-        console.error(err);
+        panic(err, this.reset);
       });
+    this.swarm.client.panic = err => {
+      panic(err, this.reset);
+    };
   }
 
   onUpdate = (update: Response<Update>): void => {
@@ -264,6 +267,11 @@ function getSymbol() {
 
 function getRandom(min, max) {
   return Math.round(Math.random() * (max - min) + min);
+}
+
+function panic(err: Error, cbk: () => void) {
+  console.error(err);
+  cbk();
 }
 
 export default App;
