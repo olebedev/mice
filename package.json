@@ -4,6 +4,8 @@
   "private": true,
   "homepage": "http://olebedev.github.io/mice",
   "dependencies": {
+    "@swarm/db": "^0.1.2",
+    "flow-bin": "0.66",
     "react": "^16.2.0",
     "react-dom": "^16.2.0",
     "react-scripts": "1.1.1"

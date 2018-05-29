@@ -1,13 +1,8 @@
 // @flow
 
 import * as React from 'react';
-import SwarmDB from 'swarm-db';
-import { LocalStorage as Storage } from 'swarm-client';
-import { UUID } from 'swarm-ron';
-import { Verbose } from 'swarm-client/lib/connection';
-
-import type { Response } from 'swarm-db';
-import type { Atom } from 'swarm-ron';
+import SwarmDB, { LocalStorage as Storage, UUID, Verbose } from '@swarm/db';
+import type { Response, Atom } from '@swarm/db';
 
 import './App.css';
 import Mouse from './Mouse';
@@ -141,10 +136,7 @@ class App extends React.Component<any, State> {
       }
     }
     console.log('drop abandoned');
-    this.miceTimeoutCheck = setTimeout(
-      this.dropAbandoned,
-      getRandom(TO_CHECK_MIN, TO_CHECK_MAX),
-    );
+    this.miceTimeoutCheck = setTimeout(this.dropAbandoned, getRandom(TO_CHECK_MIN, TO_CHECK_MAX));
   };
 
   kill(num: number = 1): void {
@@ -233,11 +225,7 @@ class App extends React.Component<any, State> {
                   x={x}
                   y={y}
                   symbol={symbol || getSymbol()}
-                  onClick={
-                    id === mouse
-                      ? () => this.set({ symbol: getSymbol() })
-                      : () => {}
-                  }
+                  onClick={id === mouse ? () => this.set({ symbol: getSymbol() }) : () => {}}
                 />
               )
             );
@@ -245,11 +233,7 @@ class App extends React.Component<any, State> {
         </div>
         <div className="online">
           <label>
-            <input
-              type="checkbox"
-              checked={this.state.online}
-              onChange={this.handleOnline}
-            />
+            <input type="checkbox" checked={this.state.online} onChange={this.handleOnline} />
             online {this.state.id && `(${this.state.id})`}
           </label>
           <button onClick={this.reset} className="reset" type="button">
